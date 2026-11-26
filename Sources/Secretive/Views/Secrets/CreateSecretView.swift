@@ -105,6 +105,12 @@ struct CreateSecretView<StoreType: SecretStoreModifiable>: View {
                                     .padding(.vertical, 3)
                                     .boxBackground(color: .orange)
                             }
+                            if keyType?.algorithm == .ecdsaSK && !authenticationRequirement.required {
+                                Text(.createSecretSecurityKeyWarning)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 3)
+                                    .boxBackground(color: .orange)
+                            }
                         }
                         VStack(alignment: .leading) {
                             TextField(.createSecretKeyAttributionLabel, text: $keyAttribution, prompt: Text(verbatim: "test@example.com"))

@@ -9517,6 +9517,17 @@
         }
       }
     },
+    "create_secret_security_key_warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning: Security key (sk) keys which do not require authentication will only be accepted by servers that set the no-touch-required option for the key."
+          }
+        }
+      }
+    },
     "create_secret_title" : {
       "extractionState" : "manual",
       "localizations" : {
