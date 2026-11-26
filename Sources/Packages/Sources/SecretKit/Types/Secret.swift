@@ -28,6 +28,11 @@ public extension Secret {
         attributes.publicKeyAttribution
     }
 
+    /// The application string for a security key ("sk") secret.
+    var securityKeyApplication: String {
+        attributes.securityKeyApplication ?? Attributes.defaultSecurityKeyApplication
+    }
+
 }
 
 /// The type of algorithm the Secret uses.
@@ -35,12 +40,14 @@ public struct KeyType: Hashable, Sendable, Codable, CustomStringConvertible {
 
     public static let ecdsa256 = KeyType(algorithm: .ecdsa, size: 256)
     public static let ecdsa384 = KeyType(algorithm: .ecdsa, size: 384)
+    public static let ecdsaSK256 = KeyType(algorithm: .ecdsaSK, size: 256)
     public static let mldsa65 = KeyType(algorithm: .mldsa, size: 65)
     public static let mldsa87 = KeyType(algorithm: .mldsa, size: 87)
     public static let rsa2048 = KeyType(algorithm: .rsa, size: 2048)
 
     public enum Algorithm: Hashable, Sendable, Codable {
         case ecdsa
+        case ecdsaSK
         case mldsa
         case rsa
     }
@@ -70,7 +77,7 @@ public struct KeyType: Hashable, Sendable, Codable, CustomStringConvertible {
     
     public var secAttrKeyType: CFString? {
         switch algorithm {
-        case .ecdsa:
+        case .ecdsa, .ecdsaSK:
             kSecAttrKeyTypeEC
         case .rsa:
             kSecAttrKeyTypeRSA

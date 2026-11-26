@@ -170,11 +170,20 @@ extension Agent {
         let request = SignatureRequest(secret: secret, provenance: provenance, target: target)
         let newContext = AuthenticationContext(secret: secret, requests: [request])
         let context = try await authenticationHandler.authenticatedContext(for: request, context: newContext)
-        let result = try await store.sign(data: data, with: secret, for: provenance, target: target, context: context?.laContext)
-        let signedData = signatureWriter.data(secret: secret, signature: result)
-        try await witness?.witness(accessTo: secret, from: store, by: provenance, target: target, offerPersistence: secret.authenticationRequirement.required)
+        let assertion = securityKeyAssertion(for: secret)
+        let result = try await store.sign(data: assertion?.signedData(for: data) ?? data, with: secret, for: provenance, target: target, context: context?.laContext)
+        let signedData = signatureWriter.data(secret: secret, signature: result, securityKeyAssertion: assertion)
+        try await witness?.witness(accessTo: secret, from: store, by: provenance, target: target, offerPersistence: secret.authenticationRequirement.required && assertion == nil)
         logger.debug("Agent signed request")
         return signedData
+    }
+
+    /// Generates the assertion that accompanies a signature from a security key secret.
+    /// - Returns: A ``SecurityKeyAssertion``, or nil if the secret is not a security key secret.
+    func securityKeyAssertion(for secret: AnySecret) -> SecurityKeyAssertion? {
+        guard secret.keyType.algorithm == .ecdsaSK else { return nil }
+        let flags: SecurityKeyAssertion.Flags = secret.authenticationRequirement.required ? [.userPresent, .userVerified] : []
+        return SecurityKeyAssertion(application: secret.securityKeyApplication, flags: flags, counter: 0)
     }
 
 }

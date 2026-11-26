@@ -18,6 +18,12 @@ public struct OpenSSHPublicKeyWriter: Sendable {
             openSSHIdentifier(for: secret.keyType).lengthAndData +
             ("nistp" + String(describing: secret.keyType.size)).lengthAndData +
             secret.publicKey.lengthAndData
+        case .ecdsaSK:
+            // https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
+            openSSHIdentifier(for: secret.keyType).lengthAndData +
+            ("nistp" + String(describing: secret.keyType.size)).lengthAndData +
+            secret.publicKey.lengthAndData +
+            secret.securityKeyApplication.lengthAndData
         case .mldsa:
             // https://datatracker.ietf.org/doc/html/draft-sfluhrer-ssh-mldsa-05
             openSSHIdentifier(for: secret.keyType).lengthAndData +
@@ -79,6 +85,8 @@ extension OpenSSHPublicKeyWriter {
             "ecdsa-sha2-nistp256"
         case .ecdsa384:
             "ecdsa-sha2-nistp384"
+        case .ecdsaSK256:
+            "sk-ecdsa-sha2-nistp256@openssh.com"
         case .mldsa65:
             "ssh-mldsa-65"
         case .mldsa87:

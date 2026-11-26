@@ -12,14 +12,22 @@ public struct Attributes: Sendable, Codable, Hashable {
     /// If nil, a default value will be used.
     public var publicKeyAttribution: String?
 
+    /// The application string for a security key ("sk") secret.
+    /// If nil, a default value will be used.
+    public var securityKeyApplication: String?
+
+    public static let defaultSecurityKeyApplication = "ssh:"
+
     public init(
         keyType: KeyType,
         authentication: AuthenticationRequirement,
-        publicKeyAttribution: String? = nil
+        publicKeyAttribution: String? = nil,
+        securityKeyApplication: String? = nil
     ) {
         self.keyType = keyType
         self.authentication = authentication
         self.publicKeyAttribution = publicKeyAttribution
+        self.securityKeyApplication = securityKeyApplication
     }
 
     public struct UnsupportedOptionError: Error {

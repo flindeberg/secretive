@@ -60,7 +60,7 @@ extension SecureEnclave {
             let attributes = try JSONDecoder().decode(Attributes.self, from: attributesData)
 
             switch attributes.keyType {
-            case .ecdsa256:
+            case .ecdsa256, .ecdsaSK256:
                 let key = try CryptoKit.SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData, authenticationContext: context)
                 return try key.signature(for: data).rawRepresentation
             case .mldsa65:
@@ -112,7 +112,7 @@ extension SecureEnclave {
             let dataRep: Data
             let publicKey: Data
             switch attributes.keyType {
-            case .ecdsa256:
+            case .ecdsa256, .ecdsaSK256:
                 let created = try CryptoKit.SecureEnclave.P256.Signing.PrivateKey(accessControl: access!)
                 dataRep = created.dataRepresentation
                 publicKey = created.publicKey.x963Representation
@@ -178,6 +178,7 @@ extension SecureEnclave {
             return KeyAvailability(
                 available: [
                     .ecdsa256,
+                    .ecdsaSK256,
                 ] + (isAtLeastMacOS26 ? macOS26Keys : []),
                 unavailable: (isAtLeastMacOS26 ? [] : macOS26Keys).map {
                     KeyAvailability.UnavailableKeyType(keyType: $0, reason: .macOSUpdateRequired)
@@ -214,7 +215,7 @@ extension SecureEnclave.Store {
                 let keyData = $0[kSecValueData] as! Data
                 let publicKey: Data
                 switch attributes.keyType {
-                case .ecdsa256:
+                case .ecdsa256, .ecdsaSK256:
                     let key = try CryptoKit.SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: keyData)
                     publicKey = key.publicKey.x963Representation
                 case .mldsa65:

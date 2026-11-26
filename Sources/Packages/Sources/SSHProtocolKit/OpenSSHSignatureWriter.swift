@@ -11,11 +11,14 @@ public struct OpenSSHSignatureWriter: Sendable {
 
     /// Generates an OpenSSH data payload identifying the secret.
     /// - Returns: OpenSSH data payload identifying the secret.
-    public func data<SecretType: Secret>(secret: SecretType, signature: Data) -> Data {
+    public func data<SecretType: Secret>(secret: SecretType, signature: Data, securityKeyAssertion: SecurityKeyAssertion? = nil) -> Data {
         switch secret.keyType.algorithm {
         case .ecdsa:
             // https://datatracker.ietf.org/doc/html/rfc5656#section-3.1
             ecdsaSignature(signature, keyType: secret.keyType)
+        case .ecdsaSK:
+            // https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f
+            ecdsaSKSignature(signature, keyType: secret.keyType, assertion: securityKeyAssertion)
         case .mldsa:
             // https://datatracker.ietf.org/doc/html/draft-sfluhrer-ssh-mldsa-05
             mldsaSignature(signature, keyType: secret.keyType)
@@ -62,6 +65,19 @@ extension OpenSSHSignatureWriter {
         sub.append(signatureChunk.lengthAndData)
         mutSignedData.append(sub.lengthAndData)
         return mutSignedData
+    }
+
+    func ecdsaSKSignature(_ rawRepresentation: Data, keyType: KeyType, assertion: SecurityKeyAssertion?) -> Data {
+        guard let assertion else { fatalError() }
+        let rawLength = rawRepresentation.count/2
+        let r = mpint(fromFixedWidthPositiveBytes: Data(rawRepresentation[0..<rawLength]))
+        let s = mpint(fromFixedWidthPositiveBytes: Data(rawRepresentation[rawLength...]))
+
+        var sub = Data()
+        sub.append(OpenSSHPublicKeyWriter().openSSHIdentifier(for: keyType).lengthAndData)
+        sub.append((r.lengthAndData + s.lengthAndData).lengthAndData)
+        sub.append(assertion.flagsAndCounter)
+        return sub.lengthAndData
     }
 
     func mldsaSignature(_ rawRepresentation: Data, keyType: KeyType) -> Data {

@@ -71,6 +71,35 @@ import CertificateKit
             .isValidSignature(signature, for: context.dataToSign.raw))
     }
 
+    @Test func ecdsaSKSignature() async throws {
+        let secret = Constants.Secrets.ecdsaSK256Secret
+        let dataToSign = Data("test".utf8)
+        let request = SSHAgent.Request.signRequest(.init(keyBlob: OpenSSHPublicKeyWriter().data(secret: secret), dataToSign: .init(raw: dataToSign, decoded: nil)))
+        let list = await storeList(with: [secret])
+        let agent = Agent(storeList: list, certificateStore: CertificateStore(), authenticationHandler: AuthenticationHandler(settingsStore: .init()))
+        let response = await agent.handle(request: request, provenance: .test, hosts: nil)
+        let responseReader = OpenSSHReader(data: response)
+        let length = try responseReader.readNextBytes(as: UInt32.self)
+        let type = try responseReader.readNextBytes(as: UInt8.self)
+        #expect(length == response.count - MemoryLayout<UInt32>.size)
+        #expect(type == SSHAgent.Response.agentSignResponse.rawValue)
+        let outer = OpenSSHReader(data: responseReader.remaining)
+        let inner = try outer.readNextChunkAsSubReader()
+        #expect(try inner.readNextChunkAsString() == "sk-ecdsa-sha2-nistp256@openssh.com")
+        let rsData = try inner.readNextChunkAsSubReader()
+        let r = try rsData.readNextChunk().drop { $0 == 0 }
+        let s = try rsData.readNextChunk().drop { $0 == 0 }
+        let rs = Data(repeating: 0, count: 32 - r.count) + r + Data(repeating: 0, count: 32 - s.count) + s
+        let flags = try inner.readNextBytes(as: UInt8.self)
+        let counter = try inner.readNextBytes(as: UInt32.self)
+        #expect(flags == 0)
+        #expect(counter == 0)
+        let signature = try P256.Signing.ECDSASignature(rawRepresentation: rs)
+        let assertion = SecurityKeyAssertion(application: "ssh:", flags: [], counter: 0)
+        #expect(try P256.Signing.PublicKey(x963Representation: secret.publicKey)
+            .isValidSignature(signature, for: assertion.signedData(for: dataToSign)))
+    }
+
     // MARK: Witness protocol
 
     @Test func witnessObjectionStopsRequest() async throws {
